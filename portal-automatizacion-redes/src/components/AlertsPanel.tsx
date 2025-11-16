@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SeverityPill from "@/components/ui/SeverityPill";
 
 type Alert = {
   id: number;
@@ -40,9 +41,13 @@ export default function AlertsPanel() {
                 <span className="text-sm font-semibold">
                   {a.device} · {a.interface}
                 </span>
+
+                {/* componente UI reutilizable */}
                 <SeverityPill severity={a.severity} />
               </div>
+
               <p className="text-sm text-slate-200">{a.message}</p>
+
               <span className="text-[10px] text-slate-500">
                 {new Date(a.timestamp).toLocaleString()}
               </span>
@@ -51,30 +56,5 @@ export default function AlertsPanel() {
         </ul>
       )}
     </section>
-  );
-}
-
-function SeverityPill({ severity }: { severity: Alert["severity"] }) {
-  const base =
-    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold";
-
-  if (severity === "critical") {
-    return (
-      <span className={`${base} bg-red-500/20 text-red-300 border border-red-500/40`}>
-        ● critical
-      </span>
-    );
-  }
-  if (severity === "warning") {
-    return (
-      <span className={`${base} bg-yellow-500/20 text-yellow-300 border border-yellow-500/40`}>
-        ● warning
-      </span>
-    );
-  }
-  return (
-    <span className={`${base} bg-sky-500/20 text-sky-300 border border-sky-500/40`}>
-      ● info
-    </span>
   );
 }
