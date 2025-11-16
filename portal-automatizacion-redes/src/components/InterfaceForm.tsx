@@ -10,25 +10,38 @@ export default function InterfaceForm() {
   const [ip, setIp] = useState("");
   const [prefix, setPrefix] = useState("24");
   const [enabled, setEnabled] = useState(true);
-
-  const handleSubmit = (e: FormEvent) => {
+  
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    try {
+        const res = await fetch("/api/interface", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            deviceIp: deviceIp,
+            interfaceName: iface,
+            description: desc,
+            enabled: enabled,
+            ipv4Address: ip,
+            ipv4Prefix: prefix,
+        }),
+        });
 
-    console.log({
-      deviceIp,
-      iface,
-      desc,
-      ip,
-      prefix,
-      enabled,
-    });
+        if (!res.ok) {
+        throw new Error("Error en API");
+        }
 
-    setTimeout(() => {
-      alert("Configuración enviada.");
-      setLoading(false);
-    }, 600);
-  };
+        const data = await res.json();
+        console.log("Respuesta de /api/interface:", data);
+        alert("Configuración enviada al API (mock).");
+    } catch (err) {
+        console.error(err);
+        alert("Error al enviar configuración.");
+    } finally {
+        setLoading(false);
+    }
+    };
 
   return (
     <form

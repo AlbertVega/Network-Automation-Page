@@ -1,28 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 type Device = {
+  id: string;
   name: string;
   mgmtIp: string;
   role: string;
   status: "online" | "offline";
 };
 
-const MOCK_DEVICES: Device[] = [
-  { name: "R1-Core", mgmtIp: "10.0.0.1", role: "Core / Backbone", status: "online" },
-  { name: "R2-Edge", mgmtIp: "10.0.0.2", role: "Edge / ISP", status: "online" },
-  { name: "R3-Branch", mgmtIp: "10.0.0.3", role: "Sucursal", status: "offline" },
-];
-
 export default function DeviceList() {
+  const [devices, setDevices] = useState<Device[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      const res = await fetch("/api/device", { cache: "no-store" });
+      const json = await res.json();
+      setDevices(json);
+    }
+    load();
+  }, []);
+  
   return (
     <section className="bg-slate-800/60 border border-slate-700 rounded-2xl p-8 space-y-4 w-full shadow-lg">
       <h2 className="text-xl font-semibold text-sky-400">
         Dispositivos en la topología
       </h2>
-      <p className="text-sm text-slate-200">
-        Esta vista resume los dispositivos que forman parte del sandbox. Más
-        adelante, se alimentará desde el backend en Python o una base de datos.
-      </p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -35,8 +39,8 @@ export default function DeviceList() {
             </tr>
           </thead>
           <tbody>
-            {MOCK_DEVICES.map((d) => (
-              <tr key={d.name} className="border-b border-slate-800">
+            {devices.map((d) => (
+              <tr key={d.id} className="border-b border-slate-800">
                 <td className="py-2 pr-2">{d.name}</td>
                 <td className="py-2 pr-2">{d.mgmtIp}</td>
                 <td className="py-2 pr-2">{d.role}</td>
@@ -48,7 +52,7 @@ export default function DeviceList() {
                         : "bg-red-500/20 text-red-300 border border-red-500/50"
                     }`}
                   >
-                    ● {d.status}
+                    {d.status}
                   </span>
                 </td>
               </tr>

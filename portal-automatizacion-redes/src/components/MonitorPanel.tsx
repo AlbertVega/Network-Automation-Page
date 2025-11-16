@@ -11,53 +11,33 @@ type InterfaceStatus = {
   errors: number;
 };
 
-const MOCK_DATA: InterfaceStatus[] = [
-  {
-    name: "GigabitEthernet1",
-    device: "R1-Core",
-    adminUp: true,
-    operUp: true,
-    trafficInKbps: 1200,
-    errors: 0,
-  },
-  {
-    name: "GigabitEthernet2",
-    device: "R1-Core",
-    adminUp: true,
-    operUp: false,
-    trafficInKbps: 0,
-    errors: 3,
-  },
-  {
-    name: "GigabitEthernet0/0",
-    device: "R2-Edge",
-    adminUp: true,
-    operUp: true,
-    trafficInKbps: 340,
-    errors: 1,
-  },
-];
+const FALLBACK_DATA: InterfaceStatus[] = [];
 
 export default function MonitorPanel() {
-  const [interfaces, setInterfaces] = useState<InterfaceStatus[]>(MOCK_DATA);
+  const [interfaces, setInterfaces] = useState<InterfaceStatus[]>(FALLBACK_DATA);
 
-  // Aquí después podrías hacer polling al backend
   useEffect(() => {
-    // Ejemplo futuro:
-    // fetch("/api/monitor")
-    //   .then((r) => r.json())
-    //   .then((data) => setInterfaces(data));
+    async function loadData() {
+      try {
+        const res = await fetch("/api/monitor", { cache: "no-store" });
+        if (!res.ok) throw new Error("API error");
+        const json = await res.json();
+        setInterfaces(json);
+      } catch (e) {
+        console.warn("Usando datos simulados (fallback)");
+        setInterfaces(FALLBACK_DATA);
+      }
+    }
+
+    loadData();
   }, []);
 
   return (
-    <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 space-y-4">
-      <header className="flex items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold text-sky-400">
+    <section className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-lg">
+      <header className="flex items-center justify-between gap-2 pb-2 border-b border-slate-700">
+        <h2 className="text-2xl font-semibold text-sky-400">
           Monitoreo de interfaces
         </h2>
-        <span className="text-xs bg-slate-900 border border-slate-700 px-2 py-1 rounded-full text-slate-300">
-          Modo demo (datos simulados)
-        </span>
       </header>
 
       <div className="overflow-x-auto">
@@ -72,14 +52,20 @@ export default function MonitorPanel() {
               <th className="py-2 text-right">Errores</th>
             </tr>
           </thead>
+
           <tbody>
             {interfaces.map((iface) => (
-              <tr key={`${iface.device}-${iface.name}`} className="border-b border-slate-800">
+              <tr
+                key={`${iface.device}-${iface.name}`}
+                className="border-b border-slate-800 hover:bg-slate-700/20 transition"
+              >
                 <td className="py-2 pr-2">{iface.device}</td>
                 <td className="py-2 pr-2">{iface.name}</td>
+
                 <td className="py-2 pr-2">
                   <StatusPill up={iface.adminUp} label={iface.adminUp ? "up" : "down"} />
                 </td>
+
                 <td className="py-2 pr-2">
                   <StatusPill
                     up={iface.operUp}
@@ -87,9 +73,11 @@ export default function MonitorPanel() {
                     critical={!iface.operUp && iface.adminUp}
                   />
                 </td>
+
                 <td className="py-2 pr-2 text-right">
                   {iface.trafficInKbps.toLocaleString("en-US")}
                 </td>
+
                 <td className="py-2 text-right">
                   <span
                     className={
@@ -121,23 +109,26 @@ function StatusPill({
 }) {
   const base =
     "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold";
+
   if (up) {
     return (
       <span className={`${base} bg-green-500/20 text-green-300 border border-green-500/40`}>
-        ● {label}
+        {label}
       </span>
     );
   }
+
   if (critical) {
     return (
       <span className={`${base} bg-red-500/20 text-red-300 border border-red-500/40`}>
-        ● {label}
+        {label}
       </span>
     );
   }
+
   return (
     <span className={`${base} bg-slate-700 text-slate-200 border border-slate-600`}>
-      ● {label}
+        {label}
     </span>
   );
 }
