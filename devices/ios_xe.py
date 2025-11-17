@@ -53,3 +53,17 @@ def xe_set_interface_desc(interface, description):
         verify=False
     )
     return response.status_code, response.text
+
+
+def xe_set_login_banner(banner_text):
+    url = f"{BASE_URL}/Cisco-IOS-XE-native:native/banner/login/banner"
+    payload = {"Cisco-IOS-XE-native:banner": banner_text}
+
+    response = requests.put(
+        url,
+        auth=HTTPBasicAuth(XE_USER, XE_PASS),
+        json=payload,
+        headers=HEADERS,
+        verify=False
+    )
+    return response.status_code, response.text
