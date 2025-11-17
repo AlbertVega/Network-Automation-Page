@@ -8,9 +8,9 @@ XR_PASS = "C1sco12345"
 def xr_set_hostname(hostname):
     config = f"""
     <config>
-      <hostname xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-shellutil-cfg">
+      <host-names xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-shellutil-cfg">    
         <host-name>{hostname}</host-name>
-      </hostname>
+      </host-names>
     </config>
     """
 

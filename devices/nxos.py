@@ -14,7 +14,7 @@ def nx_set_hostname(hostname):
     payload = {
         "ins_api": {
             "version": "1.0",
-            "type": "cli",
+            "type": "cli_conf",
             "chunk": "0",
             "sid": "1",
             "input": f"hostname {hostname}",
@@ -36,7 +36,7 @@ def nx_set_interface_desc(interface, description):
     payload = {
         "ins_api": {
             "version": "1.0",
-            "type": "cli",
+            "type": "cli_conf",
             "chunk": "0",
             "sid": "1",
             "input": f"interface {interface} ; description {description}",

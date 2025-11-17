@@ -29,29 +29,23 @@ def xe_set_hostname(hostname):
 
 
 def xe_set_interface_desc(interface, description):
-    url = f"{BASE_URL}/Cisco-IOS-XE-native:native/interface/{interface}"
-    payload = {"description": description}
-
-    response = requests.patch(
-        url,
-        auth=HTTPBasicAuth(XE_USER, XE_PASS),
-        json=payload,
-        headers=HEADERS,
-        verify=False
-    )
-    return response.status_code, response.text
-
-
-def xe_set_ospf_process(pid, router_id):
-    url = f"{BASE_URL}/Cisco-IOS-XE-native:native/router/Cisco-IOS-XE-ospf:ospf"
+    # Parse interface type and number (e.g., "GigabitEthernet1" -> "GigabitEthernet", "1")
+    import re
+    match = re.match(r'([A-Za-z]+)(\d+(?:/\d+)*)', interface)
+    if not match:
+        return 400, "Invalid interface format"
+    
+    interface_type, interface_num = match.groups()
+    
+    url = f"{BASE_URL}/Cisco-IOS-XE-native:native/interface/{interface_type}={interface_num}"
     payload = {
-        "Cisco-IOS-XE-ospf:ospf": [{
-            "id": pid,
-            "router-id": router_id
-        }]
+        interface_type: {
+            "name": interface_num,
+            "description": description
+        }
     }
 
-    response = requests.post(
+    response = requests.patch(
         url,
         auth=HTTPBasicAuth(XE_USER, XE_PASS),
         json=payload,
