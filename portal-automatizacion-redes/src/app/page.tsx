@@ -6,6 +6,8 @@ import MonitorPanel from "@/components/MonitorPanel";
 import AlertsPanel from "@/components/AlertsPanel";
 import DeviceList from "@/components/DeviceList";
 import DiscortAlert from "@/components/DiscordTest";
+import BulkInterfaceUpload from "@/components/BulkInterfaceUpload";
+
 
 type TabId = "config" | "monitor" | "alerts" | "devices"| "discord";
 
@@ -46,8 +48,9 @@ export default function HomePage() {
       {/* Contenido de cada tab */}
       <div>
         {activeTab === "config" && (
-          <div className="max-w-3xl">
+          <div className="grid md:grid-cols-2 gap-6">
             <InterfaceForm />
+            <BulkInterfaceUpload />
           </div>
         )}
 
@@ -64,7 +67,7 @@ export default function HomePage() {
         )}
 
         {activeTab === "devices" && (
-          <div className="max-w-4xl">
+          <div className="max-w-8xl">
             <DeviceList />
           </div>
         )}

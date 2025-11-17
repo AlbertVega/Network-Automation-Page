@@ -1,17 +1,26 @@
 import { NextResponse } from "next/server";
+import { pushInterfaceConfig, pushBulkInterfaceConfigs } from "@/lib/interfaceService";
 
 export async function POST(request: Request) {
   const body = await request.json();
 
-  // Aquí luego vas a llamar a tu backend Python o directamente a RESTCONF
-  console.log("Interface config recibida en API /api/interface:", body);
-
-  return NextResponse.json(
-    {
-      status: "ok",
-      message: "Configuración recibida en el API (mock).",
-      received: body,
-    },
-    { status: 200 }
-  );
+  let result;
+  try {
+    if (Array.isArray(body)) {
+      // Bulk upload
+      result = await pushBulkInterfaceConfigs(body);
+    } else {
+      // Individual
+      result = await pushInterfaceConfig(body);
+    }
+    return NextResponse.json(result, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json(
+      {
+        status: "error",
+        message: err.message ?? "Error enviando configuraciones",
+      },
+      { status: 500 }
+    );
+  }
 }
