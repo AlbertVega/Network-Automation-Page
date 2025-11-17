@@ -85,3 +85,49 @@ def nx_set_login_banner(banner_text):
         verify=False
     )
     return r.json()
+
+def nx_set_interface_ip(interface, ip_address, netmask):
+    payload = {
+        "ins_api": {
+            "version": "1.0",
+            "type": "cli_conf",
+            "chunk": "0",
+            "sid": "1",
+            "input": f"interface {interface} ; ip address {ip_address} {netmask}",
+            "output_format": "json"
+        }
+    }
+
+    r = requests.post(
+        BASE_URL,
+        auth=(NX_USER, NX_PASS),
+        json=payload,
+        headers=HEADERS,
+        verify=False
+    )
+    return r.json()
+
+
+def nx_set_interface_status(interface, status):
+    """Set interface status (up or down). status: 'up' or 'down'"""
+    command = "shutdown" if status.lower() == 'down' else "no shutdown"
+    
+    payload = {
+        "ins_api": {
+            "version": "1.0",
+            "type": "cli_conf",
+            "chunk": "0",
+            "sid": "1",
+            "input": f"interface {interface} ; {command}",
+            "output_format": "json"
+        }
+    }
+
+    r = requests.post(
+        BASE_URL,
+        auth=(NX_USER, NX_PASS),
+        json=payload,
+        headers=HEADERS,
+        verify=False
+    )
+    return r.json()

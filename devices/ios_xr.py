@@ -70,3 +70,68 @@ def xr_set_login_banner(banner_text):
         response = m.edit_config(target="candidate", config=config) 
         m.commit()
         return str(response)
+
+def xr_set_interface_ip(interface, ip_address, netmask):
+    config = f"""
+    <config>
+      <interface-configurations xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+        <interface-configuration>
+          <active>act</active>
+          <interface-name>{interface}</interface-name>
+          <ipv4-network xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-io-cfg">
+            <addresses>
+              <primary>
+                <address>{ip_address}</address>
+                <netmask>{netmask}</netmask>
+              </primary>
+            </addresses>
+          </ipv4-network>
+        </interface-configuration>
+      </interface-configurations>
+    </config>
+    """
+
+    with manager.connect(host=XR_HOST, port=XR_PORT,
+                         username=XR_USER, password=XR_PASS,
+                         hostkey_verify=False,
+                         device_params={'name': 'iosxr'}) as m:
+
+        response = m.edit_config(target="candidate", config=config)
+        m.commit()
+        return str(response)
+
+
+def xr_set_interface_status(interface, status):
+    """Set interface status (up or down). status: 'up' or 'down'"""
+    if status.lower() == 'down':
+        config = f"""
+    <config>
+      <interface-configurations xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+        <interface-configuration>
+          <active>act</active>
+          <interface-name>{interface}</interface-name>
+          <shutdown/>
+        </interface-configuration>
+      </interface-configurations>
+    </config>
+    """
+    else:
+        config = f"""
+    <config>
+      <interface-configurations xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+        <interface-configuration>
+          <active>act</active>
+          <interface-name>{interface}</interface-name>
+        </interface-configuration>
+      </interface-configurations>
+    </config>
+    """
+
+    with manager.connect(host=XR_HOST, port=XR_PORT,
+                         username=XR_USER, password=XR_PASS,
+                         hostkey_verify=False,
+                         device_params={'name': 'iosxr'}) as m:
+
+        response = m.edit_config(target="candidate", config=config)
+        m.commit()
+        return str(response)
