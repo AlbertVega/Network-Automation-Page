@@ -67,3 +67,73 @@ def xe_set_login_banner(banner_text):
         verify=False
     )
     return response.status_code, response.text
+
+def xe_set_interface_ip(interface, ip_address, netmask):
+    import re
+    match = re.match(r'([A-Za-z]+)(\d+(?:/\d+)*)', interface)
+    if not match:
+        return 400, "Invalid interface format"
+    
+    interface_type, interface_num = match.groups()
+    
+    url = f"{BASE_URL}/Cisco-IOS-XE-native:native/interface/{interface_type}={interface_num}"
+    payload = {
+        interface_type: {
+            "name": interface_num,
+            "ip": {
+                "address": {
+                    "primary": {
+                        "address": ip_address,
+                        "mask": netmask
+                    }
+                }
+            }
+        }
+    }
+
+    response = requests.patch(
+        url,
+        auth=HTTPBasicAuth(XE_USER, XE_PASS),
+        json=payload,
+        headers=HEADERS,
+        verify=False
+    )
+    return response.status_code, response.text
+
+
+def xe_set_interface_status(interface, status):
+    """Set interface status (up or down). status: 'up' or 'down'"""
+    import re
+    match = re.match(r'([A-Za-z]+)(\d+(?:/\d+)*)', interface)
+    if not match:
+        return 400, "Invalid interface format"
+    
+    interface_type, interface_num = match.groups()
+    
+    url = f"{BASE_URL}/Cisco-IOS-XE-native:native/interface/{interface_type}={interface_num}"
+    
+    if status.lower() == 'down':
+        # Add shutdown (presence leaf - just needs to be present)
+        payload = {
+            interface_type: {
+                "name": interface_num,
+                "shutdown": [None]  # Presence leaf in YANG
+            }
+        }
+    else:
+        # Remove shutdown by patching with empty or using DELETE
+        # For 'up' status, we need to remove the shutdown element
+        payload = {
+            interface_type: {
+                "name": interface_num
+            }
+        }
+
+    response = requests.patch(
+        url,
+        auth=HTTPBasicAuth(XE_USER, XE_PASS),
+        json=payload,
+        headers=HEADERS,
+        verify=False
+    )
+    return response.status_code, response.text
