@@ -5,14 +5,16 @@ import InterfaceForm from "@/components/InterfaceForm";
 import MonitorPanel from "@/components/MonitorPanel";
 import AlertsPanel from "@/components/AlertsPanel";
 import DeviceList from "@/components/DeviceList";
+import DiscortAlert from "@/components/DiscordTest";
 
-type TabId = "config" | "monitor" | "alerts" | "devices";
+type TabId = "config" | "monitor" | "alerts" | "devices"| "discord";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "config", label: "Configuración" },
   { id: "monitor", label: "Monitoreo" },
   { id: "alerts", label: "Alertas" },
   { id: "devices", label: "Dispositivos" },
+  { id: "discord", label: "Discord Test" },
 ];
 
 export default function HomePage() {
@@ -64,6 +66,11 @@ export default function HomePage() {
         {activeTab === "devices" && (
           <div className="max-w-4xl">
             <DeviceList />
+          </div>
+        )}
+        {activeTab === "discord" && (
+          <div className="max-w-4xl">
+            <DiscortAlert />
           </div>
         )}
       </div>
