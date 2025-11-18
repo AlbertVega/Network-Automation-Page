@@ -31,7 +31,6 @@ def nx_set_hostname(hostname):
     )
     return r.json()
 
-
 def nx_set_interface_desc(interface, description):
     payload = {
         "ins_api": {
@@ -55,8 +54,6 @@ def nx_set_interface_desc(interface, description):
 
 
 def nx_set_login_banner(banner_text):
-    # NX-OS 9K does not support 'banner login'. Use MOTD instead.
-    # Choose a delimiter not present in the text and send as multiline.
     for d in "@#!%~^|_":
         if d not in banner_text:
             delim = d
@@ -131,3 +128,70 @@ def nx_set_interface_status(interface, status):
         verify=False
     )
     return r.json()
+
+
+def nx_create_user(username, password, role: str = "network-admin"):
+    payload = {
+        "ins_api": {
+            "version": "1.0",
+            "type": "cli_conf",
+            "chunk": "0",
+            "sid": "1",
+            "input": f"username {username} password 0 {password} role {role}",
+            "output_format": "json"
+        }
+    }
+
+    r = requests.post(
+        BASE_URL,
+        auth=(NX_USER, NX_PASS),
+        json=payload,
+        headers=HEADERS,
+        verify=False
+    )
+    return r.json()
+
+
+def nx_get_interfaces_status():
+    payload = {
+        "ins_api": {
+            "version": "1.0",
+            "type": "cli_show",
+            "chunk": "0",
+            "sid": "1",
+            "input": "show interface status",
+            "output_format": "json"
+        }
+    }
+
+    r = requests.post(
+        BASE_URL,
+        auth=(NX_USER, NX_PASS),
+        json=payload,
+        headers=HEADERS,
+        verify=False
+    )
+
+    data = r.json()
+    interfaces = []
+
+    try:
+        if "ins_api" in data and "outputs" in data["ins_api"]:
+            output = data["ins_api"]["outputs"]["output"]
+            if "body" in output and "TABLE_interface" in output["body"]:
+                ifaces = output["body"]["TABLE_interface"]["ROW_interface"]
+                if not isinstance(ifaces, list):
+                    ifaces = [ifaces]
+            
+                for iface in ifaces:
+                    interfaces.append({
+                        "name": iface.get("interface", "Unknown"),
+                        "status": iface.get("state", "unknown"),
+                        "vlan": iface.get("vlan", ""),
+                        "duplex": iface.get("duplex", ""),
+                        "speed": iface.get("speed", "")
+                    })
+    except Exception as e:
+        return {"error": str(e), "raw_data": data}
+
+    return {"interfaces": interfaces}
