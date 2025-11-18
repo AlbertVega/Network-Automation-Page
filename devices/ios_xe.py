@@ -214,3 +214,51 @@ def xe_get_interfaces_status():
             })
 
     return {"interfaces": interfaces}
+
+
+def xe_get_interface_traffic():
+    urls = {
+        "cpu": f"{BASE_URL}/Cisco-IOS-XE-process-cpu-oper:cpu-usage",
+        "memory": f"{BASE_URL}/Cisco-IOS-XE-memory-oper:memory-statistics"
+    }
+
+    results = {}
+
+    for key, url in urls.items():
+        response = requests.get(
+            url,
+            auth=HTTPBasicAuth(XE_USER, XE_PASS),
+            headers=HEADERS,
+            verify=False
+        )
+
+        if response.status_code == 200:
+            results[key] = response.json()
+        else:
+            results[key] = {"error": response.status_code, "message": response.text}
+
+    return parse_cpu_memory(results)
+
+def parse_cpu_memory(data):
+    output = {}
+    try:
+        cpu_util = data["cpu"]["Cisco-IOS-XE-process-cpu-oper:cpu-usage"]["cpu-utilization"]
+        output["cpu_percent"] = float(cpu_util.get("five-seconds", 0))
+    except (KeyError, TypeError):
+        output["cpu_percent"] = None
+
+    try:
+        mem_list = data["memory"]["Cisco-IOS-XE-memory-oper:memory-statistics"]["memory-statistic"]
+        total = 0
+        used = 0
+        for mem in mem_list:
+            if mem["name"] == "Processor":
+                total += int(mem["total-memory"])
+                used += int(mem["used-memory"])
+        
+        used_percent = (used / total * 100) if total > 0 else None
+        output["memory_percent"] = round(used_percent, 2) if used_percent is not None else None
+    except (KeyError, TypeError):
+        output["memory_percent"] = None
+
+    return output
