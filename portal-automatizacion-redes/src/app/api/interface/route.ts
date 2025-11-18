@@ -1,47 +1,46 @@
+import { FASTAPI_URL } from "@/lib/config";
+import axios from "axios";
 import { NextResponse } from "next/server";
-import {
-  pushHostnameConfig,
-  pushInterfaceConfig,
-  pushBannerConfig,
-  pushInterfaceIpConfig,
-  pushInterfaceStatusConfig,
-  pushCreateUserConfig,
-  pushActivateOspfConfig,
-} from "@/lib/interfaceService";
 
-export async function POST(request: Request) {
-  const body = await request.json();
-  const url = new URL(request.url);
-  const mode = url.searchParams.get("mode");
+type Mode = 'hostname' | 'description' | 'banner' | 'ip' | 'status' | 'user' | 'ospf';
+
+const endpoints: Record<Mode, string> = {
+  hostname: "/configure/hostname",
+  description: "/configure/interface",
+  banner: "/configure/banner",
+  ip: "/configure/interface-ip",
+  status: "/configure/interface-status",
+  user: "/configure/user",
+  ospf: "/configure/ospf",
+};
+
+const allowedModes: Mode[] = [
+  "hostname", "description", "banner", "ip", "status", "user", "ospf"
+];
+
+export async function POST(req: Request) {
+  const url = new URL(req.url);
+  const modeParam = url.searchParams.get("mode");
+
+  if (!modeParam || !allowedModes.includes(modeParam as Mode)) {
+    return NextResponse.json({ error: "Modo no soportado" }, { status: 400 });
+  }
+
+  const mode = modeParam as Mode;
+  const endpointUrl = endpoints[mode];
+  const payload = await req.json();
+
+  // Si tienes mappers para campos:
+  // const mappedPayload = mappers[mode](payload);
 
   try {
-    if (mode === "hostname") {
-      return NextResponse.json(await pushHostnameConfig(body), { status: 200 });
-    }
-    if (mode === "description") {
-      return NextResponse.json(await pushInterfaceConfig(body), { status: 200 });
-    }
-    if (mode === "banner") {
-      return NextResponse.json(await pushBannerConfig(body), { status: 200 });
-    }
-    if (mode === "ip") {
-      return NextResponse.json(await pushInterfaceIpConfig(body), { status: 200 });
-    }
-    if (mode === "status") {
-      return NextResponse.json(await pushInterfaceStatusConfig(body), { status: 200 });
-    }
-    if (mode === "user") {
-      return NextResponse.json(await pushCreateUserConfig(body), { status: 200 });
-    }
-    if (mode === "ospf") {
-      return NextResponse.json(await pushActivateOspfConfig(body), { status: 200 });
-    }
-    // Default/fallback
-    return NextResponse.json({ error: "Modo no soportado" }, { status: 400 });
+    const res = await axios.post(`${FASTAPI_URL}${endpointUrl}`, payload, {
+      headers: { "Content-Type": "application/json" }
+    });
+    return NextResponse.json(res.data, { status: 200 });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Error interno" },
-      { status: 500 }
-    );
+    const status = err?.response?.status ?? 500;
+    const data = err?.response?.data ?? err.message ?? "Error interno";
+    return NextResponse.json({ error: data }, { status });
   }
 }

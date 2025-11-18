@@ -14,6 +14,7 @@ type FormMode =
 
 export default function InterfaceForm() {
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Campos comunes
   const [device, setDevice] = useState("");
@@ -45,6 +46,7 @@ export default function InterfaceForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
 
     let url = "";
     let payload: any = { device };
@@ -87,13 +89,20 @@ export default function InterfaceForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Error en API");
+      if (!res.ok) {
+        // Lee el cuerpo del error, si hay
+        const errorBody = await res.text();
+        console.error('HTTP error:', res.status, errorBody);
+        setErrorMsg(`Error en API (${res.status}): ${errorBody}`);
+        return;
+      }
       const data = await res.json();
       console.log("Respuesta de /api/interface:", data);
+      setErrorMsg(null);
       alert("Configuración enviada al API.");
     } catch (err) {
-      console.error(err);
-      alert("Error al enviar configuración.");
+      console.error("Error al enviar configuración:", err);
+      setErrorMsg(`Error al enviar configuración: ${err instanceof Error ? err.message : err}`);
     } finally {
       setLoading(false);
     }
@@ -299,6 +308,13 @@ export default function InterfaceForm() {
       >
         {loading ? "Enviando..." : "Aplicar Configuración"}
       </button>
+
+      {/* Muestra el mensaje de error si existió */}
+      {errorMsg && (
+        <div className="mt-2 text-sm text-red-400">
+          {errorMsg}
+        </div>
+      )}
     </form>
   );
 }
