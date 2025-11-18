@@ -6,6 +6,7 @@ import MonitorPanel from "@/components/MonitorPanel";
 import AlertsPanel from "@/components/AlertsPanel";
 import DeviceList from "@/components/DeviceList";
 import DiscortAlert from "@/components/DiscordTest";
+import SyslogsPanel from "@/components/SyslogPanel";
 import BulkInterfaceUpload from "@/components/BulkInterfaceUpload";
 
 // ¡AGREGA ESTO!
@@ -87,8 +88,9 @@ export default function HomePage() {
         )}
 
         {activeTab === "devices" && (
-          <div className="max-w-8xl">
+          <div className="max-w-8xl flex flex-col gap-6">
             <DeviceList />
+            <SyslogsPanel />
           </div>
         )}
         {activeTab === "discord" && (

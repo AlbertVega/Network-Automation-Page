@@ -10,7 +10,8 @@ from devices.ios_xe import (
     xe_get_interfaces_status,
     xe_set_interface_ip, 
     xe_set_interface_status, 
-    xe_activate_ospf
+    xe_activate_ospf,
+    xe_get_interface_traffic
 )
 from devices.ios_xr import (
     xr_set_hostname,
@@ -158,3 +159,10 @@ def get_interfaces_status(device: str):
         return nx_get_interfaces_status()
     else:
         return {"error": "Unknown device"}
+
+
+@app.get("/status/syslogs")
+def get_syslogs():
+    xe_data = xe_get_interface_traffic()
+    # Si necesitas transformar el resultado, hazlo aquí
+    return {"syslogs": xe_data}

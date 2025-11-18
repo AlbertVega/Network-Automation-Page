@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { FASTAPI_URL } from "@/lib/config";
 
-// Simple store para demo; usa memoria del proceso
+// Estado anterior en memoria, para demo
 const previousStates: Record<string, string> = {}; // key: device-interface, value: status
 
 async function sendDiscordAlert(message: string) {
@@ -17,7 +17,12 @@ async function sendDiscordAlert(message: string) {
   }
 }
 
-function getAlertForChange({ device, ifaceName, oldStatus, newStatus }: {
+function getAlertForChange({
+  device,
+  ifaceName,
+  oldStatus,
+  newStatus,
+}: {
   device: string;
   ifaceName: string;
   oldStatus: string;
@@ -33,15 +38,7 @@ function getAlertForChange({ device, ifaceName, oldStatus, newStatus }: {
         newStatus === "up"
           ? `Aceptable: Interfaz ${ifaceName} está UP en ${device.toUpperCase()}`
           : `Crítico: Interfaz ${ifaceName} está DOWN en ${device.toUpperCase()}`;
-      return {
-        device,
-        interface: ifaceName,
-        severity,
-        message,
-        timestamp: new Date().toISOString(),
-        oldStatus,
-        newStatus,
-      };
+      return { device, interface: ifaceName, severity, message, timestamp: new Date().toISOString(), oldStatus, newStatus };
     }
     return null;
   }
@@ -53,15 +50,7 @@ function getAlertForChange({ device, ifaceName, oldStatus, newStatus }: {
         newStatus === "up"
           ? `Aceptable: Interfaz ${ifaceName} está UP en ${device.toUpperCase()}`
           : `Crítico: Interfaz ${ifaceName} está ADMIN-DOWN en ${device.toUpperCase()}`;
-      return {
-        device,
-        interface: ifaceName,
-        severity,
-        message,
-        timestamp: new Date().toISOString(),
-        oldStatus,
-        newStatus,
-      };
+      return { device, interface: ifaceName, severity, message, timestamp: new Date().toISOString(), oldStatus, newStatus };
     }
     return null;
   }
@@ -73,15 +62,7 @@ function getAlertForChange({ device, ifaceName, oldStatus, newStatus }: {
         newStatus === "connected"
           ? `Aceptable: Interfaz ${ifaceName} está CONNECTED en ${device.toUpperCase()}`
           : `Crítico: Interfaz ${ifaceName} está NOTCONNECT en ${device.toUpperCase()}`;
-      return {
-        device,
-        interface: ifaceName,
-        severity,
-        message,
-        timestamp: new Date().toISOString(),
-        oldStatus,
-        newStatus,
-      };
+      return { device, interface: ifaceName, severity, message, timestamp: new Date().toISOString(), oldStatus, newStatus };
     }
     return null;
   }
@@ -101,17 +82,11 @@ export async function GET(req: Request) {
 
     for (const [idx, iface] of interfacesRaw.entries()) {
       const ifaceName = iface.name ?? `Unknown-${idx}`;
-      // Normaliza status según tipo de dispositivo
       let status = (iface.status ?? iface.operStatus ?? "").toLowerCase();
-
       const key = `${device}-${ifaceName}`;
       const prevStatus = previousStates[key];
 
-      // Comprueba cambio relevante
-      if (
-        prevStatus !== undefined &&
-        prevStatus !== status
-      ) {
+      if (prevStatus !== undefined && prevStatus !== status) {
         const alert = getAlertForChange({
           device,
           ifaceName,
@@ -123,11 +98,8 @@ export async function GET(req: Request) {
           await sendDiscordAlert(alert.message);
         }
       }
-
-      // Actualiza estado
       previousStates[key] = status;
     }
-
     return NextResponse.json({ device, alerts }, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ device, alerts: [] }, { status: 200 });
