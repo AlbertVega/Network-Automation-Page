@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
 
-// Ajusta los tipos según lo que devuelva tu backend normalizado
-type XEInterface = { name: string; adminStatus: string; operStatus: string };
-type XRInterface = { name: string; operStatus: string; protocol: string };
-type NXInterface = { name: string; operStatus: string; vlan: string; duplex: string; speed: string };
-
 type Device = {
   id: string;
   name: string;
@@ -23,13 +18,14 @@ export default function DeviceInterfacesPanel({ device }: PanelProps) {
   useEffect(() => {
     async function fetchIfaces() {
       setLoading(true);
-      const res = await fetch(`/api/interfaces?type=${device.type}&mgmtIp=${device.mgmtIp}`);
+      // Aquí va tu fetch por ID
+      const res = await fetch(`/api/device/${device.id}/interfaces`);
       const data = await res.json();
       setInterfaces(data.interfaces ?? []);
       setLoading(false);
     }
     fetchIfaces();
-  }, [device.type, device.mgmtIp]);
+  }, [device.id]);
 
   return (
     <div className="mt-4 bg-slate-700/50 rounded-lg p-4">

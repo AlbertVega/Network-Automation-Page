@@ -3,17 +3,15 @@
 import { useState } from "react";
 import DeviceInterfacesPanel from "@/components/DeviceInterfacesPanel";
 
-// Modificado: Usamos el campo "role" en vez de "tipo" en el modelo Device
 type Device = {
   id: string;
   name: string;
   mgmtIp: string;
-  role: string;                  // <<--- CAMBIO: antes "tipo"
+  role: string;
   status: "online" | "offline";
   type: "xe" | "xr" | "nx";
 };
 
-// Lista FIJA de dispositivos (corrige "tipo" => "role")
 const devices: Device[] = [
   {
     id: "1",
@@ -43,7 +41,6 @@ const devices: Device[] = [
 
 export default function DeviceList() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-
   const selectedDevice = devices.find(d => d.id === selectedDeviceId);
 
   return (
