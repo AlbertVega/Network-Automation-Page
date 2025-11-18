@@ -2,6 +2,8 @@ import requests
 from requests.auth import HTTPBasicAuth
 import urllib3
 urllib3.disable_warnings()
+import json
+import time
 
 XE_HOST = "10.10.20.48"
 XE_USER = "developer"
@@ -113,16 +115,13 @@ def xe_set_interface_status(interface, status):
     url = f"{BASE_URL}/Cisco-IOS-XE-native:native/interface/{interface_type}={interface_num}"
     
     if status.lower() == 'down':
-        # Add shutdown (presence leaf - just needs to be present)
         payload = {
             interface_type: {
                 "name": interface_num,
-                "shutdown": [None]  # Presence leaf in YANG
+                "shutdown": [None]  
             }
         }
     else:
-        # Remove shutdown by patching with empty or using DELETE
-        # For 'up' status, we need to remove the shutdown element
         payload = {
             interface_type: {
                 "name": interface_num
@@ -136,4 +135,31 @@ def xe_set_interface_status(interface, status):
         headers=HEADERS,
         verify=False
     )
+    return response.status_code, response.text
+
+def xe_activate_ospf(process_id):
+    url = f"{BASE_URL}/Cisco-IOS-XE-native:native/router"
+    headers = {'Content-Type': 'application/yang-data+json','Accept': 'application/yang-data+json'}
+
+    ospf_data = {
+        "Cisco-IOS-XE-native:router": {
+            "Cisco-IOS-XE-ospf:router-ospf": {
+                "ospf": {
+                    "process-id": [
+                        {
+                            "id": process_id
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    response = requests.request("PUT",
+                                         url=url, 
+                                         auth=(XE_USER,XE_PASS), 
+                                         json=ospf_data, 
+                                         headers=headers, 
+                                         verify=False)
+    
     return response.status_code, response.text

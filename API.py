@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from devices.ios_xe import xe_set_hostname, xe_set_interface_desc, xe_set_login_banner, xe_set_interface_ip, xe_set_interface_status
+from devices.ios_xe import xe_set_hostname, xe_set_interface_desc, xe_set_login_banner, xe_set_interface_ip, xe_set_interface_status, xe_activate_ospf
 from devices.ios_xr import xr_set_hostname, xr_set_interface_desc, xr_set_login_banner, xr_set_interface_ip, xr_set_interface_status
 from devices.nxos import nx_set_hostname, nx_set_interface_desc, nx_set_login_banner, nx_set_interface_ip, nx_set_interface_status
 
@@ -61,5 +61,14 @@ def set_interface_status(device: str, interface: str, status: str):
         return xr_set_interface_status(interface, status)
     elif device == "nx":
         return nx_set_interface_status(interface, status)
+    else:
+        return {"error": "Unknown device"}
+
+
+@app.post("/configure/ospf")
+def activate_ospf(device: str, process_id: str, router_id: str):
+    """Activate OSPF protocol with process ID"""
+    if device == "xe":
+        return xe_activate_ospf(process_id)
     else:
         return {"error": "Unknown device"}
