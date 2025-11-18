@@ -48,9 +48,8 @@ export default function HomePage() {
       {/* Contenido de cada tab */}
       <div>
         {activeTab === "config" && (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="max-w-5xl">
             <InterfaceForm />
-            <BulkInterfaceUpload />
           </div>
         )}
 

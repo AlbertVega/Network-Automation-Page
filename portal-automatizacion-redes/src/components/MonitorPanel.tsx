@@ -6,9 +6,6 @@ type InterfaceStatus = {
   name: string;
   device: string;
   adminUp: boolean;
-  operUp: boolean;
-  trafficInKbps: number;
-  errors: number;
 };
 
 const FALLBACK_DATA: InterfaceStatus[] = [];
@@ -21,8 +18,43 @@ export default function MonitorPanel() {
       try {
         const res = await fetch("/api/monitor", { cache: "no-store" });
         if (!res.ok) throw new Error("API error");
-        const json = await res.json();
-        setInterfaces(json);
+        const data = await res.json();
+
+        // Puede venir como { interfaces: [...] } o como [...]
+        // Detectamos cuáles son interfaces
+        const interfacesRaw =
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data.interfaces)
+              ? data.interfaces
+              : [];
+
+        // Adaptamos los campos para todos los tipos de equipo
+        const mappedData: InterfaceStatus[] = interfacesRaw.map((iface: any) => {
+          // XE: admin-status
+          let adminStatus = iface["admin-status"];
+          // NXOS: state
+          if (adminStatus === undefined && iface.state) adminStatus = iface.state;
+          // XR: status
+          if (adminStatus === undefined && iface.status) adminStatus = iface.status;
+          // Si oper-status mejor te sirve, también puedes usarlo
+
+          // El campo device puede no venir, así que lo inferimos por fuente (puedes mejorarlo en backend)
+          // Ejemplo: siéntete libre de mejorar esto según tu API
+          const device =
+            iface.device ||
+            iface.source === "cli" ? "xr"
+            : iface.vlan !== undefined ? "nx"
+            : "xe";
+
+          return {
+            name: iface.name || iface.interface || iface["interface-name"] || "Unknown",
+            device,
+            adminUp: (adminStatus ?? "unknown").toLowerCase() === "up"
+          };
+        });
+
+        setInterfaces(mappedData);
       } catch (e) {
         console.warn("Usando datos simulados (fallback)");
         setInterfaces(FALLBACK_DATA);
@@ -47,9 +79,6 @@ export default function MonitorPanel() {
               <th className="py-2 text-left">Dispositivo</th>
               <th className="py-2 text-left">Interfaz</th>
               <th className="py-2 text-left">Admin</th>
-              <th className="py-2 text-left">Oper</th>
-              <th className="py-2 text-right">Tráfico (kbps)</th>
-              <th className="py-2 text-right">Errores</th>
             </tr>
           </thead>
 
@@ -61,33 +90,8 @@ export default function MonitorPanel() {
               >
                 <td className="py-2 pr-2">{iface.device}</td>
                 <td className="py-2 pr-2">{iface.name}</td>
-
                 <td className="py-2 pr-2">
                   <StatusPill up={iface.adminUp} label={iface.adminUp ? "up" : "down"} />
-                </td>
-
-                <td className="py-2 pr-2">
-                  <StatusPill
-                    up={iface.operUp}
-                    label={iface.operUp ? "up" : "down"}
-                    critical={!iface.operUp && iface.adminUp}
-                  />
-                </td>
-
-                <td className="py-2 pr-2 text-right">
-                  {iface.trafficInKbps.toLocaleString("en-US")}
-                </td>
-
-                <td className="py-2 text-right">
-                  <span
-                    className={
-                      iface.errors > 0
-                        ? "text-red-400 font-semibold"
-                        : "text-slate-300"
-                    }
-                  >
-                    {iface.errors}
-                  </span>
                 </td>
               </tr>
             ))}
@@ -101,11 +105,9 @@ export default function MonitorPanel() {
 function StatusPill({
   up,
   label,
-  critical,
 }: {
   up: boolean;
   label: string;
-  critical?: boolean;
 }) {
   const base =
     "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold";
@@ -118,17 +120,9 @@ function StatusPill({
     );
   }
 
-  if (critical) {
-    return (
-      <span className={`${base} bg-red-500/20 text-red-300 border border-red-500/40`}>
-        {label}
-      </span>
-    );
-  }
-
   return (
     <span className={`${base} bg-slate-700 text-slate-200 border border-slate-600`}>
-        {label}
+      {label}
     </span>
   );
 }

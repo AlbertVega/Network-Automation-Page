@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import PasswordInput from "./ui/PasswordInput";
 
 // Operaciones POST soportadas por tu API FastAPI
 type FormMode =
@@ -131,16 +132,24 @@ export default function InterfaceForm() {
           <option value="user">Crear usuario</option>
           <option value="ospf">Activar OSPF</option>
         </select>
+
         <select
           value={device}
-          onChange={e => setDevice(e.target.value)}
+          onChange={e => {
+            const newDevice = e.target.value;
+            setDevice(newDevice);
+            // Si seleccionas un equipo que NO es XE y el modo es ospf, cambia el modo por defecto
+            if (mode === "ospf" && newDevice !== "xe") {
+              setMode("description");
+            }
+          }}
           className="input"
           required
         >
           <option value="">Tipo de equipo</option>
-          <option value="xe">IOS XE</option>
-          <option value="xr">IOS XR</option>
-          <option value="nx">NX-OS</option>
+          <option value="xe">XE</option>
+          <option value="xr" disabled={mode === "ospf"}>XR</option>
+          <option value="nx" disabled={mode === "ospf"}>NX</option>
         </select>
       </div>
 
@@ -247,12 +256,10 @@ export default function InterfaceForm() {
             className="input"
             required
           />
-          <input
-            type="password"
+          <PasswordInput
             placeholder="Contraseña"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="input"
             required
           />
           <input
@@ -280,7 +287,7 @@ export default function InterfaceForm() {
         </>
       )}
 
-      {mode === "ospf" && (
+      {mode === "ospf" && device === "xe" && (
         <>
           <input
             type="text"
