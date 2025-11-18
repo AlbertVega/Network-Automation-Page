@@ -27,6 +27,9 @@ from devices.nxos import (
     nx_set_interface_ip,
     nx_set_interface_status
 )
+from devices.ios_xe import xe_set_hostname, xe_set_interface_desc, xe_set_login_banner, xe_set_interface_ip, xe_set_interface_status, xe_activate_ospf, xe_get_interface_traffic
+from devices.ios_xr import xr_set_hostname, xr_set_interface_desc, xr_set_login_banner, xr_set_interface_ip, xr_set_interface_status
+from devices.nxos import nx_set_hostname, nx_set_interface_desc, nx_set_login_banner, nx_set_interface_ip, nx_set_interface_status
 
 app = FastAPI()
 
@@ -113,3 +116,7 @@ def get_interfaces_status(device: str):
         return nx_get_interfaces_status()
     else:
         return {"error": "Unknown device"}
+
+@app.get("/configure/telemetry")
+def get_telemetry():
+    return xe_get_interface_traffic()
