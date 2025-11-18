@@ -28,7 +28,7 @@ export default function AlertsPanel({ onAlertsChange }: { onAlertsChange?: (hasN
       }
     }
     load();
-    const interval = setInterval(load, 5000); // Refresca cada 5 segundos
+    const interval = setInterval(load, 30000); // Refresca cada 20 segundos
     return () => clearInterval(interval);
   }, []);
 
