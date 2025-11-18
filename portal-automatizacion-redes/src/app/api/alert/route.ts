@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { FASTAPI_URL } from "@/lib/config";
 
-// Estado anterior en memoria, para demo
-const previousStates: Record<string, string> = {}; // key: device-interface, value: status
+const previousStates: Record<string, string> = {};
+const alertHistory: any[] = []; // Almacena las últimas alertas generadas
 
 async function sendDiscordAlert(message: string) {
   try {
@@ -12,8 +12,9 @@ async function sendDiscordAlert(message: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
     });
+    console.log("✓ Alerta enviada a Discord:", message);
   } catch (err) {
-    console.error("Error enviando alerta a Discord", err);
+    console.error("✗ Error enviando alerta a Discord:", err);
   }
 }
 
@@ -30,7 +31,7 @@ function getAlertForChange({
 }) {
   let severity: "info" | "critical";
   let message: string;
-  // XE
+
   if (device === "xe") {
     if (["up", "down"].includes(newStatus)) {
       severity = newStatus === "up" ? "info" : "critical";
@@ -42,7 +43,7 @@ function getAlertForChange({
     }
     return null;
   }
-  // XR
+
   if (device === "xr") {
     if (ifaceName.startsWith("Gi") && ["up", "admin-down"].includes(newStatus)) {
       severity = newStatus === "up" ? "info" : "critical";
@@ -54,7 +55,7 @@ function getAlertForChange({
     }
     return null;
   }
-  // NX
+
   if (device === "nx") {
     if (ifaceName.startsWith("Et") && ["connected", "notconnect"].includes(newStatus)) {
       severity = newStatus === "connected" ? "info" : "critical";
@@ -78,7 +79,7 @@ export async function GET(req: Request) {
     const raw = res.data;
     const interfacesRaw = Array.isArray(raw.interfaces) ? raw.interfaces : [];
 
-    const alerts = [];
+    console.log(`\n[${device}] Interfaces recibidas: ${interfacesRaw.length}`);
 
     for (const [idx, iface] of interfacesRaw.entries()) {
       const ifaceName = iface.name ?? `Unknown-${idx}`;
@@ -86,22 +87,39 @@ export async function GET(req: Request) {
       const key = `${device}-${ifaceName}`;
       const prevStatus = previousStates[key];
 
-      if (prevStatus !== undefined && prevStatus !== status) {
+      console.log(`  ${ifaceName}: ${prevStatus ?? 'INIT'} -> ${status}`);
+
+      // Inicializar estado si no existe
+      if (prevStatus === undefined) {
+        previousStates[key] = status;
+        continue;
+      }
+
+      // Detectar cambio
+      if (prevStatus !== status) {
         const alert = getAlertForChange({
           device,
           ifaceName,
           oldStatus: prevStatus,
           newStatus: status,
         });
+        
         if (alert) {
-          alerts.push({ ...alert, id: idx });
+          const alertWithId = { ...alert, id: Date.now() + idx };
+          alertHistory.unshift(alertWithId);
+          if (alertHistory.length > 50) alertHistory.pop(); // Mantener últimas 50
+          
+          console.log(`  ⚠️  ALERTA: ${alert.message}`);
           await sendDiscordAlert(alert.message);
         }
       }
+      
       previousStates[key] = status;
     }
-    return NextResponse.json({ device, alerts }, { status: 200 });
+
+    return NextResponse.json({ device, alerts: alertHistory }, { status: 200 });
   } catch (err: any) {
-    return NextResponse.json({ device, alerts: [] }, { status: 200 });
+    console.error(`Error en GET /api/alert:`, err.message);
+    return NextResponse.json({ device, alerts: alertHistory }, { status: 200 });
   }
 }
