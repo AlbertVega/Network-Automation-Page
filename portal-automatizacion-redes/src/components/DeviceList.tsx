@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import DeviceInterfacesPanel from "@/components/DeviceInterfacesPanel";
 
 type Device = {
   id: string;
@@ -40,9 +39,6 @@ const devices: Device[] = [
 ];
 
 export default function DeviceList() {
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const selectedDevice = devices.find(d => d.id === selectedDeviceId);
-
   return (
     <section className="bg-slate-800/60 border border-slate-700 rounded-2xl p-8 space-y-4 w-full shadow-lg">
       <h2 className="text-xl font-semibold text-sky-400">
@@ -58,7 +54,6 @@ export default function DeviceList() {
               <th className="py-2 text-left">Rol</th>
               <th className="py-2 text-left">Estado</th>
               <th className="py-2 text-left">Plataforma</th>
-              <th className="py-2 text-left">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -79,31 +74,11 @@ export default function DeviceList() {
                   </span>
                 </td>
                 <td className="py-2 pr-2 uppercase">{d.type}</td>
-                <td className="py-2 pr-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelectedDeviceId(
-                        selectedDeviceId === d.id ? null : d.id
-                      )
-                    }
-                    className="text-xs px-3 py-1 rounded-md border border-slate-600 bg-slate-900/70 hover:bg-slate-700/70 font-semibold text-slate-100"
-                  >
-                    {selectedDeviceId === d.id
-                      ? "Ocultar interfaces"
-                      : "Ver interfaces"}
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
-      {/* Panel de interfaces del dispositivo seleccionado */}
-      {selectedDevice && (
-        <DeviceInterfacesPanel device={selectedDevice} />
-      )}
     </section>
   );
 }
