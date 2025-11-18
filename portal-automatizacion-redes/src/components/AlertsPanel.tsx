@@ -23,21 +23,27 @@ export default function AlertsPanel({ onAlertsChange }: { onAlertsChange?: (hasN
       try {
         const res = await fetch("/api/alert", { cache: "no-store" });
         const json = await res.json();
-        setAlerts(json.alerts ?? []);
+        
+        const receivedAlerts = json.alerts ?? [];
+        
+        setAlerts(receivedAlerts);
         setError(false);
+        
         if (onAlertsChange) {
-          onAlertsChange((json.alerts?.length ?? 0) > prevAlertCount.current);
-          prevAlertCount.current = json.alerts?.length ?? 0;
+          const hasNew = receivedAlerts.length > prevAlertCount.current;
+          onAlertsChange(hasNew);
+          prevAlertCount.current = receivedAlerts.length;
         }
       } catch (e) {
+        console.error("Error loading alerts:", e);
         setError(true);
         setAlerts([]);
       }
     }
     load();
-    const interval = setInterval(load, 30000); // Polling cada 30 segundos
+    const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [onAlertsChange]);
 
   return (
     <section className="bg-slate-800/60 border border-slate-700 rounded-2xl p-8 space-y-4 w-full shadow-lg">
@@ -58,11 +64,10 @@ export default function AlertsPanel({ onAlertsChange }: { onAlertsChange?: (hasN
               } p-3`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">{a.device} · {a.interface}</span>
+                <span className="text-sm font-semibold">{a.device.toUpperCase()} · {a.interface}</span>
                 <SeverityPill severity={a.severity} />
               </div>
               <p className="text-sm text-slate-200">{a.message}</p>
-              {/* Opcional: muestra el cambio de estado */}
               {a.oldStatus && a.newStatus && (
                 <span className="text-xs text-slate-400">
                   Cambio: <b>{a.oldStatus}</b> → <b>{a.newStatus}</b>
