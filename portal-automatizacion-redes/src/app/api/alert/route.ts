@@ -23,31 +23,69 @@ function getAlertForChange({ device, ifaceName, oldStatus, newStatus }: {
   oldStatus: string;
   newStatus: string;
 }) {
-  let severity: "info" | "warning" | "critical";
+  let severity: "info" | "critical";
   let message: string;
-  if (newStatus === "up") {
-    severity = "info";
-    message = `Aceptable: Conexión estable en ${ifaceName} (${device.toUpperCase()})`;
-  } else if (
-    newStatus === "down" ||
-    newStatus === "admin-down" ||
-    newStatus === "notconnect"
-  ) {
-    severity = "critical";
-    message = `Crítico: Sin conexión en ${ifaceName} (${device.toUpperCase()})`;
-  } else {
-    severity = "warning";
-    message = `Advertencia: Estado no reconocido en ${ifaceName} (${device.toUpperCase()}): ${newStatus}`;
+  // XE
+  if (device === "xe") {
+    if (["up", "down"].includes(newStatus)) {
+      severity = newStatus === "up" ? "info" : "critical";
+      message =
+        newStatus === "up"
+          ? `Aceptable: Interfaz ${ifaceName} está UP en ${device.toUpperCase()}`
+          : `Crítico: Interfaz ${ifaceName} está DOWN en ${device.toUpperCase()}`;
+      return {
+        device,
+        interface: ifaceName,
+        severity,
+        message,
+        timestamp: new Date().toISOString(),
+        oldStatus,
+        newStatus,
+      };
+    }
+    return null;
   }
-  return {
-    device,
-    interface: ifaceName,
-    severity,
-    message,
-    timestamp: new Date().toISOString(),
-    oldStatus,
-    newStatus,
-  };
+  // XR
+  if (device === "xr") {
+    if (ifaceName.startsWith("Gi") && ["up", "admin-down"].includes(newStatus)) {
+      severity = newStatus === "up" ? "info" : "critical";
+      message =
+        newStatus === "up"
+          ? `Aceptable: Interfaz ${ifaceName} está UP en ${device.toUpperCase()}`
+          : `Crítico: Interfaz ${ifaceName} está ADMIN-DOWN en ${device.toUpperCase()}`;
+      return {
+        device,
+        interface: ifaceName,
+        severity,
+        message,
+        timestamp: new Date().toISOString(),
+        oldStatus,
+        newStatus,
+      };
+    }
+    return null;
+  }
+  // NX
+  if (device === "nx") {
+    if (ifaceName.startsWith("Et") && ["connected", "notconnect"].includes(newStatus)) {
+      severity = newStatus === "connected" ? "info" : "critical";
+      message =
+        newStatus === "connected"
+          ? `Aceptable: Interfaz ${ifaceName} está CONNECTED en ${device.toUpperCase()}`
+          : `Crítico: Interfaz ${ifaceName} está NOTCONNECT en ${device.toUpperCase()}`;
+      return {
+        device,
+        interface: ifaceName,
+        severity,
+        message,
+        timestamp: new Date().toISOString(),
+        oldStatus,
+        newStatus,
+      };
+    }
+    return null;
+  }
+  return null;
 }
 
 export async function GET(req: Request) {
@@ -59,35 +97,37 @@ export async function GET(req: Request) {
     const raw = res.data;
     const interfacesRaw = Array.isArray(raw.interfaces) ? raw.interfaces : [];
 
-    // List of alerts to return/show
     const alerts = [];
 
     for (const [idx, iface] of interfacesRaw.entries()) {
       const ifaceName = iface.name ?? `Unknown-${idx}`;
-      const status = (iface.status ?? iface.operStatus ?? "").toLowerCase();
+      // Normaliza status según tipo de dispositivo
+      let status = (iface.status ?? iface.operStatus ?? "").toLowerCase();
 
       const key = `${device}-${ifaceName}`;
       const prevStatus = previousStates[key];
 
-      // Solo alertamos si hubo CAMBIO de estado (o nunca hemos visto ese estado)
-      if (prevStatus !== undefined && prevStatus !== status) {
+      // Comprueba cambio relevante
+      if (
+        prevStatus !== undefined &&
+        prevStatus !== status
+      ) {
         const alert = getAlertForChange({
           device,
           ifaceName,
           oldStatus: prevStatus,
           newStatus: status,
         });
-        alerts.push({ ...alert, id: idx });
-
-        // ALERTA a Discord solo en caso de cambio
-        await sendDiscordAlert(alert.message);
+        if (alert) {
+          alerts.push({ ...alert, id: idx });
+          await sendDiscordAlert(alert.message);
+        }
       }
 
-      // Guardamos el estado actual
+      // Actualiza estado
       previousStates[key] = status;
     }
 
-    // Devuelve solo alertas de cambio en esta consulta
     return NextResponse.json({ device, alerts }, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ device, alerts: [] }, { status: 200 });

@@ -1,93 +1,52 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import SeverityPill from "@/components/ui/SeverityPill";
-
-type Interface = {
-  name: string;
-  operStatus?: string;
-  device?: string;
-};
 
 type Alert = {
   id: number;
   device: string;
   interface: string;
-  severity: "info" | "warning" | "critical";
+  severity: "info" | "critical";
   message: string;
   timestamp: string;
+  oldStatus?: string;
+  newStatus?: string;
 };
 
-export default function AlertsPanel() {
+export default function AlertsPanel({ onAlertsChange }: { onAlertsChange?: (hasNew: boolean) => void }) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const prevAlertCount = useRef(0);
 
   useEffect(() => {
     async function load() {
       const res = await fetch("/api/alert", { cache: "no-store" });
       const json = await res.json();
-
-      // Usa alertas ya normalizadas si tu backend las genera
-      // setAlerts(json.alerts ?? []);
-
-      // Si solo vienen interfaces:
-      const interfaces: Interface[] = json.interfaces ?? [];
-      const deviceName = json.device ?? "Desconocido";
-
-      const allAlerts: Alert[] = interfaces.map((iface, idx) => {
-        const status = (iface.operStatus ?? "").toLowerCase();
-        let severity: Alert["severity"];
-        let message: string;
-
-        if (status === "up") {
-          severity = "info";
-          message = "Aceptable: Conexión estable";
-        } else if (
-          status === "down" ||
-          status === "admin-down" ||
-          status === "notconnect"
-        ) {
-          severity = "critical";
-          message = "Crítico: Sin conexión";
-        } else {
-          severity = "warning";
-          message = `Advertencia: Estado no reconocido (${status})`;
-        }
-
-        return {
-          id: idx,
-          device: deviceName,
-          interface: iface.name ?? "Desconocido",
-          severity,
-          message,
-          timestamp: new Date().toISOString(),
-        };
-      });
-
-      setAlerts(allAlerts);
+      setAlerts(json.alerts ?? []);
+      // Si el número de alertas cambió, hay nuevas
+      if (onAlertsChange) {
+        onAlertsChange((json.alerts?.length ?? 0) > prevAlertCount.current);
+        prevAlertCount.current = json.alerts?.length ?? 0;
+      }
     }
     load();
+    const interval = setInterval(load, 5000); // Refresca cada 5 segundos
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <section className="bg-slate-800/60 border border-slate-700 rounded-2xl p-8 space-y-4 w-full shadow-lg">
       <h2 className="text-xl font-semibold text-sky-400">Alertas recientes</h2>
-
       {alerts.length === 0 ? (
-        <p className="text-sm text-slate-400">No hay alertas activas.</p>
+        <p className="text-sm text-slate-400">No hay alertas recientes.</p>
       ) : (
         <ul className="space-y-3">
           {alerts.map((a) => (
             <li
               key={a.id}
-              className={`flex flex-col gap-1 rounded-lg border
-                ${
-                  a.severity === "critical"
-                    ? "border-red-600 bg-red-950/70"
-                    : a.severity === "warning"
-                    ? "border-yellow-600 bg-yellow-900/20"
-                    : "border-green-600 bg-slate-900/70"
-                }
-                p-3`}
+              className={`flex flex-col gap-1 rounded-lg border ${
+                a.severity === "critical"
+                  ? "border-red-600 bg-red-950/70"
+                  : "border-green-600 bg-slate-900/70"
+              } p-3`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">
@@ -96,6 +55,12 @@ export default function AlertsPanel() {
                 <SeverityPill severity={a.severity} />
               </div>
               <p className="text-sm text-slate-200">{a.message}</p>
+              {/* Opcional: muestra el cambio de estado */}
+              {a.oldStatus && a.newStatus && (
+                <span className="text-xs text-slate-400">
+                  Cambio: <b>{a.oldStatus}</b> → <b>{a.newStatus}</b>
+                </span>
+              )}
               <span className="text-[10px] text-slate-500">
                 {a.timestamp
                   ? new Date(a.timestamp).toLocaleString()

@@ -8,7 +8,7 @@ import DeviceList from "@/components/DeviceList";
 import DiscortAlert from "@/components/DiscordTest";
 import BulkInterfaceUpload from "@/components/BulkInterfaceUpload";
 
-
+// ¡AGREGA ESTO!
 type TabId = "config" | "monitor" | "alerts" | "devices"| "discord";
 
 const TABS: { id: TabId; label: string }[] = [
@@ -21,6 +21,20 @@ const TABS: { id: TabId; label: string }[] = [
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabId>("config");
+  const [alertsChanged, setAlertsChanged] = useState(false);
+
+  // Callback para AlertsPanel: se ejecuta si hay nuevas alertas
+  const handleAlertsChange = (hasNewAlerts: boolean) => {
+    // Si no estás en la tab de alertas, muestra el punto; si ya la abriste, lo apaga
+    if (activeTab !== "alerts" && hasNewAlerts) setAlertsChanged(true);
+    if (activeTab === "alerts") setAlertsChanged(false);
+  };
+
+  // Si el usuario entra a la tab de alertas, borra el punto rojo
+  const handleTabClick = (id: TabId) => {
+    setActiveTab(id);
+    if (id === "alerts") setAlertsChanged(false);
+  };
 
   return (
     <section className="space-y-8">
@@ -31,8 +45,8 @@ export default function HomePage() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all
+              onClick={() => handleTabClick(tab.id)}
+              className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all
                 ${
                   isActive
                     ? "bg-slate-800 text-green-300 border border-green-400/60 shadow-md"
@@ -40,6 +54,13 @@ export default function HomePage() {
                 }`}
             >
               {tab.label}
+              {/* Si hay cambios, muestra el dot rojo a la derecha del texto */}
+              {tab.id === "alerts" && alertsChanged && (
+                <span
+                  className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse"
+                  aria-label="Nuevas alertas"
+                />
+              )}
             </button>
           );
         })}
@@ -61,7 +82,7 @@ export default function HomePage() {
 
         {activeTab === "alerts" && (
           <div className="max-w-3xl">
-            <AlertsPanel />
+            <AlertsPanel onAlertsChange={handleAlertsChange} />
           </div>
         )}
 
