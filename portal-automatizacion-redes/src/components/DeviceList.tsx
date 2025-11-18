@@ -1,28 +1,50 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DeviceInterfacesPanel from "@/components/DeviceInterfacesPanel";
 
+// Modificado: Usamos el campo "role" en vez de "tipo" en el modelo Device
 type Device = {
   id: string;
   name: string;
   mgmtIp: string;
-  role: string;
+  role: string;                  // <<--- CAMBIO: antes "tipo"
   status: "online" | "offline";
+  type: "xe" | "xr" | "nx";
 };
 
+// Lista FIJA de dispositivos (corrige "tipo" => "role")
+const devices: Device[] = [
+  {
+    id: "1",
+    name: "Catalyst 8000v",
+    mgmtIp: "10.10.20.48",
+    role: "router",
+    status: "online",
+    type: "xe"
+  },
+  {
+    id: "2",
+    name: "IOS XRv 9K",
+    mgmtIp: "10.10.20.35",
+    role: "router",
+    status: "online",
+    type: "xr"
+  },
+  {
+    id: "3",
+    name: "Nexus 9K",
+    mgmtIp: "10.10.20.40",
+    role: "switch",
+    status: "online",
+    type: "nx"
+  }
+];
+
 export default function DeviceList() {
-  const [devices, setDevices] = useState<Device[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      const res = await fetch("/api/device", { cache: "no-store" });
-      const json = await res.json();
-      setDevices(json);
-    }
-    load();
-  }, []);
+  const selectedDevice = devices.find(d => d.id === selectedDeviceId);
 
   return (
     <section className="bg-slate-800/60 border border-slate-700 rounded-2xl p-8 space-y-4 w-full shadow-lg">
@@ -38,6 +60,7 @@ export default function DeviceList() {
               <th className="py-2 text-left">IP gestión</th>
               <th className="py-2 text-left">Rol</th>
               <th className="py-2 text-left">Estado</th>
+              <th className="py-2 text-left">Plataforma</th>
               <th className="py-2 text-left">Acciones</th>
             </tr>
           </thead>
@@ -58,6 +81,7 @@ export default function DeviceList() {
                     {d.status}
                   </span>
                 </td>
+                <td className="py-2 pr-2 uppercase">{d.type}</td>
                 <td className="py-2 pr-2">
                   <button
                     type="button"
@@ -79,8 +103,9 @@ export default function DeviceList() {
         </table>
       </div>
 
-      {selectedDeviceId && (
-        <DeviceInterfacesPanel deviceId={selectedDeviceId} />
+      {/* Panel de interfaces del dispositivo seleccionado */}
+      {selectedDevice && (
+        <DeviceInterfacesPanel device={selectedDevice} />
       )}
     </section>
   );

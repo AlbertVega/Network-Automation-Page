@@ -1,100 +1,80 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
-type InterfaceStatus = {
+// Ajusta los tipos según lo que devuelva tu backend normalizado
+type XEInterface = { name: string; adminStatus: string; operStatus: string };
+type XRInterface = { name: string; operStatus: string; protocol: string };
+type NXInterface = { name: string; operStatus: string; vlan: string; duplex: string; speed: string };
+
+type Device = {
+  id: string;
   name: string;
-  deviceId: string;
-  adminUp: boolean;
-  operUp: boolean;
-  trafficInKbps: number;
-  errors: number;
+  mgmtIp: string;
+  role: string;
+  status: "online" | "offline";
+  type: "xe" | "xr" | "nx";
 };
 
-export default function DeviceInterfacesPanel({
-  deviceId,
-}: {
-  deviceId: string;
-}) {
-  const [interfaces, setInterfaces] = useState<InterfaceStatus[]>([]);
-  const [loading, setLoading] = useState(true);
+type PanelProps = { device: Device; };
+
+export default function DeviceInterfacesPanel({ device }: PanelProps) {
+  const [interfaces, setInterfaces] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch(`/api/device/${deviceId}/interfaces`, {
-          cache: "no-store",
-        });
-        const json = await res.json();
-        setInterfaces(json);
-      } catch (e) {
-        console.error("Error cargando interfaces:", e);
-        setInterfaces([]);
-      } finally {
-        setLoading(false);
-      }
+    async function fetchIfaces() {
+      setLoading(true);
+      const res = await fetch(`/api/interfaces?type=${device.type}&mgmtIp=${device.mgmtIp}`);
+      const data = await res.json();
+      setInterfaces(data.interfaces ?? []);
+      setLoading(false);
     }
-
-    load();
-  }, [deviceId]);
+    fetchIfaces();
+  }, [device.type, device.mgmtIp]);
 
   return (
-    <section className="mt-4 bg-slate-900/70 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-lg">
-      <h3 className="text-lg font-semibold text-sky-300">
-        Interfaces del dispositivo: {deviceId}
+    <div className="mt-4 bg-slate-700/50 rounded-lg p-4">
+      <h3 className="text-lg font-semibold text-sky-300 mb-2">
+        Interfaces para {device.name} ({device.type.toUpperCase()}) — {device.mgmtIp}
       </h3>
 
       {loading ? (
-        <p className="text-sm text-slate-400">Cargando interfaces...</p>
-      ) : interfaces.length === 0 ? (
-        <p className="text-sm text-slate-400">
-          No se encontraron interfaces para este dispositivo.
-        </p>
+        <div className="text-slate-400">Cargando interfaces...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs uppercase text-slate-400 border-b border-slate-700">
-              <tr>
-                <th className="py-2 text-left">Interfaz</th>
-                <th className="py-2 text-left">Admin</th>
-                <th className="py-2 text-left">Oper</th>
-                <th className="py-2 text-right">Tráfico (kbps)</th>
-                <th className="py-2 text-right">Errores</th>
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-slate-400 border-b border-slate-700">
+            <tr>
+              <th className="py-2 text-left">Interfaz</th>
+              {device.type === "xe" && <th className="py-2 text-left">Admin-status</th>}
+              <th className="py-2 text-left">Oper-status</th>
+              {device.type === "xr" && <th className="py-2 text-left">Protocolo</th>}
+              {device.type === "nx" && (
+                <>
+                  <th className="py-2 text-left">VLAN</th>
+                  <th className="py-2 text-left">Duplex</th>
+                  <th className="py-2 text-left">Speed</th>
+                </>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {interfaces.map((iface, idx) => (
+              <tr key={idx} className="border-b border-slate-800">
+                <td className="py-2 pr-2">{iface.name}</td>
+                {device.type === "xe" && <td className="py-2 pr-2">{iface.adminStatus}</td>}
+                <td className="py-2 pr-2">{iface.operStatus}</td>
+                {device.type === "xr" && <td className="py-2 pr-2">{iface.protocol}</td>}
+                {device.type === "nx" && (
+                  <>
+                    <td className="py-2 pr-2">{iface.vlan}</td>
+                    <td className="py-2 pr-2">{iface.duplex}</td>
+                    <td className="py-2 pr-2">{iface.speed}</td>
+                  </>
+                )}
               </tr>
-            </thead>
-            <tbody>
-              {interfaces.map((iface) => (
-                <tr
-                  key={iface.name}
-                  className="border-b border-slate-800 hover:bg-slate-800/40 transition"
-                >
-                  <td className="py-2 pr-2">{iface.name}</td>
-                  <td className="py-2 pr-2">
-                    {iface.adminUp ? "up" : "down"}
-                  </td>
-                  <td className="py-2 pr-2">
-                    {iface.operUp ? "up" : "down"}
-                  </td>
-                  <td className="py-2 pr-2 text-right">
-                    {iface.trafficInKbps.toLocaleString("en-US")}
-                  </td>
-                  <td className="py-2 text-right">
-                    <span
-                      className={
-                        iface.errors > 0
-                          ? "text-red-400 font-semibold"
-                          : "text-slate-300"
-                      }
-                    >
-                      {iface.errors}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
-    </section>
+    </div>
   );
 }
