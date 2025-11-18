@@ -3,11 +3,17 @@
 import { useEffect, useState } from "react";
 import SeverityPill from "@/components/ui/SeverityPill";
 
+type Interface = {
+  name: string;
+  operStatus?: string;
+  device?: string;
+};
+
 type Alert = {
   id: number;
   device: string;
   interface: string;
-  severity: "info" | "warning" | "critical";
+  severity: "critical";
   message: string;
   timestamp: string;
 };
@@ -19,7 +25,28 @@ export default function AlertsPanel() {
     async function load() {
       const res = await fetch("/api/alert", { cache: "no-store" });
       const json = await res.json();
-      setAlerts(json);
+
+      // Si tu backend no filtra, se asume que json.interfaces está presente
+      const interfaces: Interface[] = json.interfaces ?? [];
+
+      // Filtramos solo las interfaces sin conexión
+      const critAlerts: Alert[] = interfaces
+        .filter(
+          (iface) =>
+            ["down", "admin-down", "notconnect"].includes(
+              (iface.operStatus ?? "").toLowerCase()
+            )
+        )
+        .map((iface, idx) => ({
+          id: idx,
+          device: json.device ?? iface.device ?? "Desconocido",
+          interface: iface.name ?? "Desconocido",
+          severity: "critical",
+          message: "Crítico: Sin conexión",
+          timestamp: new Date().toISOString(),
+        }));
+
+      setAlerts(critAlerts);
     }
     load();
   }, []);
@@ -41,15 +68,13 @@ export default function AlertsPanel() {
                 <span className="text-sm font-semibold">
                   {a.device} · {a.interface}
                 </span>
-
-                {/* componente UI reutilizable */}
                 <SeverityPill severity={a.severity} />
               </div>
-
               <p className="text-sm text-slate-200">{a.message}</p>
-
               <span className="text-[10px] text-slate-500">
-                {new Date(a.timestamp).toLocaleString()}
+                {a.timestamp
+                  ? new Date(a.timestamp).toLocaleString()
+                  : ""}
               </span>
             </li>
           ))}
