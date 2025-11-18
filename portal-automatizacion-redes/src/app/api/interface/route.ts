@@ -4,22 +4,19 @@ import { pushInterfaceConfig, pushBulkInterfaceConfigs } from "@/lib/interfaceSe
 export async function POST(request: Request) {
   const body = await request.json();
 
-  let result;
   try {
     if (Array.isArray(body)) {
-      // Bulk upload
-      result = await pushBulkInterfaceConfigs(body);
+      // Bulk...
+      const result = await pushBulkInterfaceConfigs(body);
+      return NextResponse.json(result, { status: 200 });
     } else {
-      // Individual
-      result = await pushInterfaceConfig(body);
+      // Individual...
+      const result = await pushInterfaceConfig(body);
+      return NextResponse.json(result, { status: 200 });
     }
-    return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
     return NextResponse.json(
-      {
-        status: "error",
-        message: err.message ?? "Error enviando configuraciones",
-      },
+      { status: "error", message: err.message ?? "Error enviando configuración" },
       { status: 500 }
     );
   }

@@ -3,6 +3,7 @@
 import { useState, ChangeEvent } from "react";
 
 type InterfaceConfig = {
+  device: string;                // <-- Obligatorio en el JSON
   deviceIp: string;
   interfaceName: string;
   description?: string;
@@ -17,6 +18,7 @@ export default function BulkInterfaceUpload() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Validar que cada objeto tiene el campo "device"
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -35,11 +37,22 @@ export default function BulkInterfaceUpload() {
         throw new Error("El archivo JSON debe contener un arreglo de objetos.");
       }
 
+      // Validar que cada objeto tiene "device"
+      const missingDevice = json.some(
+        (entry: any) => !entry.device || typeof entry.device !== "string"
+      );
+      if (missingDevice) {
+        throw new Error(
+          "Cada configuración debe tener el campo `device` (xe, xr, nx) en el archivo JSON."
+        );
+      }
+
       setFileConfigs(json);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setFileConfigs(null);
       setErrorMsg(
+        err.message ||
         "No se pudo leer o interpretar el archivo. Verifique el formato JSON."
       );
     }
@@ -91,11 +104,10 @@ export default function BulkInterfaceUpload() {
       </h2>
 
       <p className="text-sm text-slate-300">
-        Cargue un archivo JSON con una lista de interfaces para aplicar la configuración de forma masiva.
+        Cargue un archivo JSON con una lista de interfaces (cada una con {"`device`"}: xe, xr o nx).
       </p>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        {/* Botón de archivo resaltado */}
         <label
           htmlFor="bulk-json-upload"
           className="cursor-pointer px-4 py-2 rounded-md bg-green-500 hover:bg-green-400 text-slate-900 font-semibold border border-green-300 shadow transition"
@@ -106,7 +118,7 @@ export default function BulkInterfaceUpload() {
             type="file"
             accept="application/json"
             onChange={handleFileChange}
-            className="hidden" // Oculta el input nativo
+            className="hidden"
           />
         </label>
 
