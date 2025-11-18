@@ -13,7 +13,7 @@ type Alert = {
   id: number;
   device: string;
   interface: string;
-  severity: "critical";
+  severity: "info" | "warning" | "critical";
   message: string;
   timestamp: string;
 };
@@ -26,27 +26,44 @@ export default function AlertsPanel() {
       const res = await fetch("/api/alert", { cache: "no-store" });
       const json = await res.json();
 
-      // Si tu backend no filtra, se asume que json.interfaces está presente
+      // Usa alertas ya normalizadas si tu backend las genera
+      // setAlerts(json.alerts ?? []);
+
+      // Si solo vienen interfaces:
       const interfaces: Interface[] = json.interfaces ?? [];
+      const deviceName = json.device ?? "Desconocido";
 
-      // Filtramos solo las interfaces sin conexión
-      const critAlerts: Alert[] = interfaces
-        .filter(
-          (iface) =>
-            ["down", "admin-down", "notconnect"].includes(
-              (iface.operStatus ?? "").toLowerCase()
-            )
-        )
-        .map((iface, idx) => ({
+      const allAlerts: Alert[] = interfaces.map((iface, idx) => {
+        const status = (iface.operStatus ?? "").toLowerCase();
+        let severity: Alert["severity"];
+        let message: string;
+
+        if (status === "up") {
+          severity = "info";
+          message = "Aceptable: Conexión estable";
+        } else if (
+          status === "down" ||
+          status === "admin-down" ||
+          status === "notconnect"
+        ) {
+          severity = "critical";
+          message = "Crítico: Sin conexión";
+        } else {
+          severity = "warning";
+          message = `Advertencia: Estado no reconocido (${status})`;
+        }
+
+        return {
           id: idx,
-          device: json.device ?? iface.device ?? "Desconocido",
+          device: deviceName,
           interface: iface.name ?? "Desconocido",
-          severity: "critical",
-          message: "Crítico: Sin conexión",
+          severity,
+          message,
           timestamp: new Date().toISOString(),
-        }));
+        };
+      });
 
-      setAlerts(critAlerts);
+      setAlerts(allAlerts);
     }
     load();
   }, []);
@@ -62,7 +79,15 @@ export default function AlertsPanel() {
           {alerts.map((a) => (
             <li
               key={a.id}
-              className="flex flex-col gap-1 rounded-lg border border-slate-600 bg-slate-900/70 p-3"
+              className={`flex flex-col gap-1 rounded-lg border
+                ${
+                  a.severity === "critical"
+                    ? "border-red-600 bg-red-950/70"
+                    : a.severity === "warning"
+                    ? "border-yellow-600 bg-yellow-900/20"
+                    : "border-green-600 bg-slate-900/70"
+                }
+                p-3`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">
