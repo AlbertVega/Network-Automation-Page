@@ -74,13 +74,9 @@ export default function InterfaceForm() {
       url = "/api/interface?mode=user";
       payload.username = username;
       payload.password = password;
-      payload.privilege = privilege; // XE
-      if (device === "xr") {
-        payload.group = [group]; // ENVIAR como array para XR
-      } else {
-        payload.group = group;
-      }
-      payload.role = role; // NX
+      payload.privilege = privilege;
+      payload.group = [group];
+      payload.role = role;
     } else if (mode === "ospf") {
       url = "/api/interface?mode=ospf";
       payload.process_id = ospfProcessId;
