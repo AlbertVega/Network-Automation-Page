@@ -120,3 +120,7 @@ def get_interfaces_status(device: str):
 @app.get("/configure/telemetry")
 def get_telemetry():
     return xe_get_interface_traffic()
+
+@app.get("/configure/telemetry")
+def get_telemetry():
+    return xe_get_interface_traffic()
