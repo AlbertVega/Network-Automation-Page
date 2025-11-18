@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import List
 
 from devices.ios_xe import (
     xe_set_hostname,
@@ -57,7 +58,7 @@ class UserPayload(BaseModel):
     username: str
     password: str
     privilege: int = 15
-    group: str = "netadmin"
+    group: List[str] = ["netadmin"]
     role: str = "network-admin"
 
 class InterfaceStatusPayload(BaseModel):
